@@ -24,6 +24,11 @@ void constructHashTable(hashEntry hashTable[])
     }
 }
 
+hashEntry* initHashEntry(hashEntry hashMap[], int hash){
+    hashEntry* obj = &hashMap[hash];
+    return obj;
+}
+
 void pushHashTable(char *str, Tk tokenType, hashEntry hashTable[])
 {
     int hash = hashCode(str);
@@ -37,7 +42,7 @@ void pushHashTable(char *str, Tk tokenType, hashEntry hashTable[])
     }
     else
     {
-        hashEntry *trav = (hashEntry *)malloc(sizeof(hashEntry));
+        hashEntry *trav = initHashEntry(hashMap, hash);
         while (trav->next)
         {
             trav = trav->next;
@@ -63,7 +68,7 @@ hashRet* search(char* str, hashEntry hashMap[]){
     int hash = hashCode(str);
     hashRet* obj = initHashRet();
     if(!hashMap[hash].str){
-        hashEntry* trav = &hashMap[hash];
+        hashEntry* trav = initHashEntry(hashMap, hash);
         while(trav){
             if(!strcmp(str, trav->str)){
                 obj->found = TRUE;
