@@ -37,7 +37,7 @@ typedef struct ret{
 } hashRet;
 
 
-hashEntry hashMap[TABLE_SIZE];
+hashEntry hashMapKeys[TABLE_SIZE];
 
 int hashCode(char* str);
 void constructHashTable(hashEntry hashTable[]);
