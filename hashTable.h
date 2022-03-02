@@ -45,6 +45,7 @@ void pushHashTable(char* str, Tk tokenType, hashEntry hashTable[]);
 void pushKeyword(hashEntry hashTable[]);
 hashRet* initHashRet();
 hashRet* search(char* str, hashEntry hashMap[]);
+hashEntry* initHashEntry(hashEntry hashMap[], int hash);
 
 
 #endif
