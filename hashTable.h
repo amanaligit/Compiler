@@ -6,6 +6,8 @@
 #define BUFF_SIZE 4096
 #define TABLE_SIZE 20000
 #define MAX_ID_SIZE 20
+#define MIN_ID_SIZE 2
+#define MAX_FUNC_SIZE 30
 #define ll long long
 
 char buf1[BUFF_SIZE + 1];
@@ -100,8 +102,10 @@ int hashCode(char *str);
 void constructHashTable(hashEntry hashTable[]);
 void pushHashTable(char *str, Tk tokenType, hashEntry hashTable[]);
 void pushKeyword(hashEntry hashTable[]);
-hashRet *initHashRet();
-hashRet *search(char *str, hashEntry hashMap[]);
+hashRet initHashRet();
+hashRet search(char *str, hashEntry hashMap[]);
 hashEntry *initHashEntry(hashEntry hashMap[], int hash);
+int isKeyWord(char *lexeme);
+char *enumToString(Tk token);
 
 #endif

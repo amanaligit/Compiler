@@ -4,4 +4,5 @@
 
 void removeComments(FILE *testcaseFile, char *cleanFile);
 void retract(int count);
+char getNextChar();
 #endif

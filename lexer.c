@@ -1,14 +1,14 @@
 #include "lexer.h"
+#include "hashTable.h"
 
 FILE *fptr;
 char *bg, *fp;
-int line, ptrBuff1, ptrBuff2;
+int line = 1, ptrBuff1, ptrBuff2;
 int lexSize;
 int EOFReached = 0;
 
 char *give_lexeme()
 {
-
     retract(1);
     char *truelexeme = (char *)malloc(sizeof(char) * 32);
     char *cur = bg;
@@ -33,11 +33,6 @@ char *give_lexeme()
     return truelexeme;
 }
 
-Tk keywordEnum(char *str)
-{
-    return stringToEnum(str, hashMapKeys);
-}
-
 void removeComments(FILE *testcaseFile, char *cleanFile)
 {
     char buffer1[BUFF_SIZE + 1];
@@ -52,8 +47,6 @@ void removeComments(FILE *testcaseFile, char *cleanFile)
     char ch;
     while (line_size != -1)
     {
-        // printf("%d", line_size);
-        // printf("%s", buffer1);
         char ch = buffer1[0];
         int i = 0;
         while (ch != '%' && i != line_size)
@@ -82,7 +75,6 @@ Token *fillToken(char *lex, Tk t, unsigned int lineno, value val, int tag)
     strcpy(res->str, lex);
     res->tokenType = t; // fill enum here
     res->lineNo = lineno;
-    // res->isKeyword = isKey;
     res->val = val;
     res->tag = tag;
     return res;
@@ -92,17 +84,15 @@ void throwErrorAndProceed(int toPrintErr, int *curState)
 {
     *curState = 0;
     if (toPrintErr == TRUE)
-        printf("Line:%d Lexical Error: ", line);
+        printf("Line:%d Lexical Error\n", line);
     retract(1);
     fp++;
-    if (toPrintErr == TRUE)
-        printf("%s\n", give_lexeme());
     bg = fp;
 }
 
 Token *getNextToken(int toPrintErr)
 {
-    if (EOFReached)
+    if (EOFReached == TRUE)
     {
         return NULL;
     }
@@ -112,15 +102,17 @@ Token *getNextToken(int toPrintErr)
     int curState = 0;
     int lengthOfIdentifier = 0;
 
-    while (finished != 0)
+    while (!finished)
     {
         ch = getNextChar();
+        // printf("%c", ch);
 
         switch (curState)
         {
         // recheck
         case 0:
         {
+            lengthOfIdentifier = 1;
             if (ch == '[')
             {
                 curState = 1;
@@ -224,8 +216,8 @@ Token *getNextToken(int toPrintErr)
             else if (ch == ' ' || ch == '\t' || ch == '\r')
             {
 
-                while (ch != ' ' && ch != '\t' && ch != '\r')
-                    ch = getNextChar();
+                // while (ch == ' ' || ch == '\t' || ch == '\r')
+                //     ch = getNextChar();
                 bg = fp;
             }
 
@@ -233,6 +225,11 @@ Token *getNextToken(int toPrintErr)
             {
                 bg = fp;
                 line++;
+            }
+
+            else if (ch >= 'a' && ch <= 'z')
+            {
+                curState = 60;
             }
 
             else if (EOFReached == 1)
@@ -249,6 +246,36 @@ Token *getNextToken(int toPrintErr)
                 if (toPrintErr == 1)
                     printf("%s\n", give_lexeme());
                 bg = fp;
+            }
+        }
+        break;
+
+        case 60:
+        {
+            if (ch >= 'a' && ch <= 'z')
+                curState = 60;
+
+            else
+                curState = 61;
+        }
+        break;
+
+        case 61:
+        {
+            retract(1);
+            char *lexeme = give_lexeme();
+            hashRet res = search(lexeme, hashMapKeys);
+            finished = 1;
+            value num_val;
+            num_val.intVal = 0;
+            if (res.found)
+            {
+                Tk c = res.ent->token;
+                return fillToken(lexeme, c, line, num_val, 0);
+            }
+            else
+            {
+                throwErrorAndProceed(toPrintErr, &curState);
             }
         }
         break;
@@ -435,8 +462,487 @@ Token *getNextToken(int toPrintErr)
             return fillToken(give_lexeme(), c, line, num_val, 0);
         }
         break;
+
+        case 19:
+        {
+            finished = 1;
+            Tk c = TK_LT;
+            value num_val;
+            num_val.intVal = 0;
+            retract(1);
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 20:
+        {
+            if (ch == '=')
+            {
+                curState = 21;
+            }
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+        case 21:
+        {
+            finished = 1;
+            Tk c = TK_NE;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 22:
+        {
+            if (ch == '=')
+                curState = 23;
+            else
+            {
+                curState = 24;
+            }
+        }
+        break;
+
+        case 23:
+        {
+            finished = 1;
+            Tk c = TK_GE;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 24:
+        {
+            retract(1);
+            finished = 1;
+            Tk c = TK_GT;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 25:
+        {
+            if (ch == '=')
+                curState = 26;
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 26:
+        {
+            finished = 1;
+            Tk c = TK_EQ;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 27:
+        {
+            lengthOfIdentifier++;
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+                curState = 28;
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 28:
+        {
+            lengthOfIdentifier++;
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+                curState = 28;
+            else if (ch >= '0' && ch <= '9')
+                curState = 29;
+            else
+                curState = 31;
+        }
+        break;
+
+        case 29:
+        {
+            lengthOfIdentifier++;
+            if (ch >= '0' && ch <= '9')
+                curState = 29;
+            else
+                curState = 30;
+        }
+        break;
+
+        case 30:
+        {
+            if (lengthOfIdentifier <= MAX_FUNC_SIZE)
+            {
+                retract(1);
+                finished = 1;
+                Tk c = TK_FUNID;
+                value num_val;
+                num_val.intVal = 0;
+                return fillToken(give_lexeme(), c, line, num_val, 0);
+            }
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 31:
+        {
+            if (lengthOfIdentifier <= MAX_FUNC_SIZE)
+            {
+                retract(1);
+                char *lexeme = give_lexeme();
+                hashRet res = search(lexeme, hashMapKeys);
+                finished = 1;
+                value num_val;
+                num_val.intVal = 0;
+                if (res.found)
+                {
+                    Tk c = res.ent->token;
+                    return fillToken(lexeme, c, line, num_val, 0);
+                }
+                else
+                {
+                    Tk c = TK_FUNID;
+                    return fillToken(lexeme, c, line, num_val, 0);
+                }
+            }
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 32:
+        {
+            if (ch == '\n')
+                curState = 33;
+            else
+                curState = 32;
+        }
+        break;
+
+        case 33:
+        {
+            finished = 1;
+            Tk c = TK_COMMENT;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 34:
+        {
+            if (ch == '&')
+                curState = 35;
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 35:
+        {
+            if (ch == '&')
+                curState = 36;
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 36:
+        {
+            finished = 1;
+            Tk c = TK_AND;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 37:
+        {
+            if (ch == '@')
+                curState = 38;
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 38:
+        {
+            if (ch == '@')
+                curState = 39;
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+
+        case 39:
+        {
+            finished = 1;
+            Tk c = TK_OR;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 40:
+        {
+            lengthOfIdentifier++;
+            if (ch >= '2' && ch <= '7')
+                curState = 41;
+            else if (ch >= 'a' && ch <= 'z')
+                curState = 45;
+            else
+                curState = 46;
+        }
+        break;
+
+        case 41:
+        {
+            lengthOfIdentifier++;
+
+            if (ch >= 'b' && ch <= 'd')
+                curState = 41;
+            else if (ch >= '2' && ch <= '7')
+                curState = 42;
+            else
+                curState = 44;
+        }
+        break;
+
+        case 42:
+        {
+            lengthOfIdentifier++;
+
+            if (ch >= '2' && ch <= '7')
+                curState = 42;
+            else
+                curState = 43;
+        }
+        break;
+
+        case 43:
+        {
+            retract(1);
+            finished = 1;
+            Tk c = TK_ID;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 44:
+        {
+            retract(1);
+            finished = 1;
+            Tk c = TK_ID;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+
+        case 45:
+        {
+            lengthOfIdentifier++;
+
+            if (ch >= 'a' && ch <= 'z')
+                curState = 45;
+            else
+                curState = 46;
+        }
+        break;
+
+        case 46:
+        {
+            if (lengthOfIdentifier >= MIN_ID_SIZE && lengthOfIdentifier <= MAX_ID_SIZE)
+            {
+                retract(1);
+                char *lexeme = give_lexeme();
+                hashRet res = search(lexeme, hashMapKeys);
+                finished = 1;
+                value num_val;
+                num_val.intVal = 0;
+                if (res.found)
+                {
+                    Tk c = res.ent->token;
+                    return fillToken(lexeme, c, line, num_val, 0);
+                }
+                else
+                {
+                    Tk c = TK_FIELDID;
+                    return fillToken(lexeme, c, line, num_val, 0);
+                }
+            }
+            else
+                throwErrorAndProceed(toPrintErr, &curState);
+        }
+        break;
+        case 47:
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                curState = 47;
+            }
+            else if (ch == '.')
+            {
+                curState = 49;
+            }
+            else
+            {
+                curState = 48;
+            }
+        }
+        break;
+        case 48:
+        {
+            retract(1);
+            finished = 1;
+            Tk c = TK_NUM;
+            value num_val;
+            char *str = give_lexeme();
+            num_val.intVal = atoi(str);
+            return fillToken(str, c, line, num_val, isInt);
+        }
+        break;
+        case 49:
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                curState = 50;
+            }
+            else
+            {
+                throwErrorAndProceed(toPrintErr, &curState);
+            }
+        }
+        break;
+        case 50:
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                curState = 51;
+            }
+            else
+            {
+                throwErrorAndProceed(toPrintErr, &curState);
+            }
+        }
+        break;
+        case 51:
+        {
+            if (ch == 'E')
+            {
+                curState = 53;
+            }
+            else
+            {
+                curState = 52;
+            }
+        }
+        break;
+        case 52:
+        {
+            retract(1);
+            finished = 1;
+            Tk c = TK_RNUM;
+            value num_val;
+            char *str = give_lexeme();
+            num_val.intVal = atof(str);
+            return fillToken(str, c, line, num_val, isFloat);
+        }
+        break;
+        case 53:
+        {
+            if (ch == '+' || ch == '-')
+            {
+                curState = 54;
+            }
+            else if (ch >= '0' && ch <= '9')
+            {
+                curState = 55;
+            }
+            else
+            {
+                throwErrorAndProceed(toPrintErr, &curState);
+            }
+        }
+        break;
+        case 54:
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                curState = 56;
+            }
+            else
+            {
+                throwErrorAndProceed(toPrintErr, &curState);
+            }
+        }
+        break;
+        case 56:
+        {
+            // retract(1);
+            finished = 1;
+            Tk c = TK_RNUM;
+            value num_val;
+            char *str = give_lexeme();
+            num_val.intVal = atof(str);
+            return fillToken(str, c, line, num_val, isFloat);
+        }
+        break;
+        case 57:
+        {
+            if (ch >= 'a' && ch <= 'z')
+            {
+                curState = 58;
+            }
+            else
+            {
+                throwErrorAndProceed(toPrintErr, &curState);
+            }
+        }
+        break;
+        case 58:
+        {
+            if (ch >= 'a' && ch <= 'z')
+            {
+                curState = 58;
+            }
+            else
+            {
+                curState = 59;
+            }
+        }
+        break;
+        case 59:
+        {
+            retract(1);
+            finished = 1;
+            Tk c = TK_RUID;
+            value num_val;
+            num_val.intVal = 0;
+            return fillToken(give_lexeme(), c, line, num_val, 0);
+        }
+        break;
+        }
+        if (EOFReached == TRUE)
+        {
+            break;
         }
     }
+
+    return NULL;
 }
 
 char getNextChar()
@@ -496,22 +1002,48 @@ void retract(int count)
         fp -= count;
 }
 
+// int main()
+// {
+//     // FILE *in = fopen("test", "r");
+//     // removeComments(in, "output");
+
+//     char c;
+//     fptr = fopen("test", "r");
+//     int siz = fread(buf1, sizeof(char), BUFF_SIZE, fptr);
+//     buf1[siz] = EOF;
+//     fp = buf1;
+//     while (!EOFReached)
+//     {
+//         // printf("while");
+//         Token *temp = getNextToken(1);
+//         if (temp)
+//             printf("%d", temp->tokenType);
+//     }
+
+//     fclose(fptr);
+
+//     return 0;
+// }
+
 int main()
 {
     // FILE *in = fopen("test", "r");
     // removeComments(in, "output");
-
+    // printf("%s", enumToString(TK_AND));
+    pushKeyword(hashMapKeys);
     char c;
     fptr = fopen("test", "r");
     int siz = fread(buf1, sizeof(char), BUFF_SIZE, fptr);
     buf1[siz] = EOF;
     fp = buf1;
+    bg = buf1;
     while (!EOFReached)
     {
-        printf("%c", c);
-        c = getNextChar();
+        // printf("while");
+        Token *temp = getNextToken(1);
+        if (temp)
+            printf("%s %s\n", enumToString(temp->tokenType), temp->str);
     }
-
     fclose(fptr);
 
     return 0;
